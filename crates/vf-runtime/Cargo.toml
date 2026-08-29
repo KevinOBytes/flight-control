@@ -1,0 +1,14 @@
+[package]
+name = "vf-runtime"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vf-core = { path = "../vf-core" }
+vf-model = { path = "../vf-model" }
+vf-allocator = { path = "../vf-allocator" }
+vf-faults = { path = "../vf-faults" }
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+nalgebra.workspace = true

@@ -1,0 +1,9 @@
+[package]
+name = "vf-hal"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vf-core = { path = "../vf-core" }
+serde.workspace = true
+thiserror.workspace = true

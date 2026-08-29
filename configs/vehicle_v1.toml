@@ -1,0 +1,354 @@
+# VectorFlight Reference Vehicle V1 Configuration
+# Coordinate system: Body-frame FRD (X: Forward, Y: Right, Z: Down)
+# Angular units: Radians
+
+[vehicle]
+mass_kg = 25.0
+inertia_diag = [0.8, 0.8, 1.5] # Diagonal inertia tensor elements: Ixx, Iyy, Izz
+center_of_mass_body_m = [0.0, 0.0, 0.0]
+
+[loop_rates]
+thrust_allocation_hz = 200.0
+motor_tilt_planner_hz = 50.0
+pod_tilt_planner_hz = 20.0
+telemetry_hz = 50.0
+health_monitoring_hz = 100.0
+
+[allocator_weights]
+wrench_error = [1e4, 1e4, 1e4, 1e4, 1e4, 1e4] # [Fx, Fy, Fz, Mx, My, Mz]
+smoothness = 1.0
+power = 0.1
+center = 10.0
+
+[fault_thresholds]
+stale_feedback_timeout_s = 0.05
+min_singular_value_degraded = 0.1
+min_singular_value_critical = 0.01
+
+# --- Propulsion Pods ---
+# Position is relative to body center of mass.
+# Rotation is Yaw, Pitch, Roll (intrinsic) of the pod base relative to body frame.
+
+[pods.FL]
+position_body_m = [0.5, -0.5, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+axis_1_local = [1.0, 0.0, 0.0] # Pod axis 1 (typically pitch or roll axis)
+axis_2_local = [0.0, 1.0, 0.0] # Pod axis 2 (perpendicular to axis 1)
+axis_1_min_rad = -0.5235987755982988  # -30 deg
+axis_1_max_rad = 0.5235987755982988   # +30 deg
+axis_1_rate_limit_rad_s = 3.141592653589793 # 180 deg/s
+axis_2_min_rad = -0.5235987755982988  # -30 deg
+axis_2_max_rad = 0.5235987755982988   # +30 deg
+axis_2_rate_limit_rad_s = 3.141592653589793 # 180 deg/s
+can_interface = "can0"
+can_bus_id = 1
+
+[pods.FR]
+position_body_m = [0.5, 0.5, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+axis_1_local = [1.0, 0.0, 0.0]
+axis_2_local = [0.0, 1.0, 0.0]
+axis_1_min_rad = -0.5235987755982988
+axis_1_max_rad = 0.5235987755982988
+axis_1_rate_limit_rad_s = 3.141592653589793
+axis_2_min_rad = -0.5235987755982988
+axis_2_max_rad = 0.5235987755982988
+axis_2_rate_limit_rad_s = 3.141592653589793
+can_interface = "can0"
+can_bus_id = 2
+
+[pods.RL]
+position_body_m = [-0.5, -0.5, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+axis_1_local = [1.0, 0.0, 0.0]
+axis_2_local = [0.0, 1.0, 0.0]
+axis_1_min_rad = -0.5235987755982988
+axis_1_max_rad = 0.5235987755982988
+axis_1_rate_limit_rad_s = 3.141592653589793
+axis_2_min_rad = -0.5235987755982988
+axis_2_max_rad = 0.5235987755982988
+axis_2_rate_limit_rad_s = 3.141592653589793
+can_interface = "can1"
+can_bus_id = 3
+
+[pods.RR]
+position_body_m = [-0.5, 0.5, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+axis_1_local = [1.0, 0.0, 0.0]
+axis_2_local = [0.0, 1.0, 0.0]
+axis_1_min_rad = -0.5235987755982988
+axis_1_max_rad = 0.5235987755982988
+axis_1_rate_limit_rad_s = 3.141592653589793
+axis_2_min_rad = -0.5235987755982988
+axis_2_max_rad = 0.5235987755982988
+axis_2_rate_limit_rad_s = 3.141592653589793
+can_interface = "can1"
+can_bus_id = 4
+
+
+# --- Rotors (4 per Pod, 16 total) ---
+# Position is local relative to the pod center.
+# Base orientation relative to the pod base (pointing -Z down for lift, etc.).
+
+# --- Pod FL Rotors ---
+[[rotors]]
+id = 1
+pod_id = "FL"
+position_pod_m = [0.1, -0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0] # aligned with pod
+motor_tilt_axis_local = [0.0, 1.0, 0.0]    # tilt around local Y axis
+spin_direction = "CW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483   # -45 deg
+motor_tilt_max_rad = 0.7853981633974483    # +45 deg
+motor_tilt_rate_limit_rad_s = 6.283185307179586 # 360 deg/s
+torque_per_thrust_m = 0.02
+can_node_id = 11
+
+[[rotors]]
+id = 2
+pod_id = "FL"
+position_pod_m = [0.1, 0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CCW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 12
+
+[[rotors]]
+id = 3
+pod_id = "FL"
+position_pod_m = [-0.1, -0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CCW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 13
+
+[[rotors]]
+id = 4
+pod_id = "FL"
+position_pod_m = [-0.1, 0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 14
+
+
+# --- Pod FR Rotors ---
+[[rotors]]
+id = 5
+pod_id = "FR"
+position_pod_m = [0.1, -0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CCW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 21
+
+[[rotors]]
+id = 6
+pod_id = "FR"
+position_pod_m = [0.1, 0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 22
+
+[[rotors]]
+id = 7
+pod_id = "FR"
+position_pod_m = [-0.1, -0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 23
+
+[[rotors]]
+id = 8
+pod_id = "FR"
+position_pod_m = [-0.1, 0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CCW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 24
+
+
+# --- Pod RL Rotors ---
+[[rotors]]
+id = 9
+pod_id = "RL"
+position_pod_m = [0.1, -0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CCW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 31
+
+[[rotors]]
+id = 10
+pod_id = "RL"
+position_pod_m = [0.1, 0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 32
+
+[[rotors]]
+id = 11
+pod_id = "RL"
+position_pod_m = [-0.1, -0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 33
+
+[[rotors]]
+id = 12
+pod_id = "RL"
+position_pod_m = [-0.1, 0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CCW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 34
+
+
+# --- Pod RR Rotors ---
+[[rotors]]
+id = 13
+pod_id = "RR"
+position_pod_m = [0.1, -0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 41
+
+[[rotors]]
+id = 14
+pod_id = "RR"
+position_pod_m = [0.1, 0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CCW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 42
+
+[[rotors]]
+id = 15
+pod_id = "RR"
+position_pod_m = [-0.1, -0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CCW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 43
+
+[[rotors]]
+id = 16
+pod_id = "RR"
+position_pod_m = [-0.1, 0.1, 0.0]
+base_orientation_ypr_rad = [0.0, 0.0, 0.0]
+motor_tilt_axis_local = [0.0, 1.0, 0.0]
+spin_direction = "CW"
+thrust_min_n = 0.0
+thrust_max_n = 50.0
+thrust_rate_limit_n_s = 500.0
+motor_tilt_min_rad = -0.7853981633974483
+motor_tilt_max_rad = 0.7853981633974483
+motor_tilt_rate_limit_rad_s = 6.283185307179586
+torque_per_thrust_m = 0.02
+can_node_id = 44
