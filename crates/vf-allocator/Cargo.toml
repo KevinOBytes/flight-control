@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 vf-core = { path = "../vf-core" }
 vf-model = { path = "../vf-model" }
+vf-faults = { path = "../vf-faults" }
 nalgebra.workspace = true
 osqp.workspace = true
 tracing.workspace = true

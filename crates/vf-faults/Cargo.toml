@@ -5,5 +5,7 @@ edition = "2021"
 
 [dependencies]
 vf-core = { path = "../vf-core" }
+vf-model = { path = "../vf-model" }
 serde.workspace = true
 thiserror.workspace = true
+nalgebra.workspace = true

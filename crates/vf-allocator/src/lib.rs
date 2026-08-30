@@ -3,8 +3,9 @@ pub mod csc;
 use nalgebra::{DMatrix, DVector, SMatrix, SVector};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
-use vf_core::{BodyWrench, VfError};
-use vf_model::{compute_thrust_effectiveness, wrench_from_actuators, ActuatorState, VehicleModel};
+use vf_core::{BodyWrench, PodAxis, PodId, VfError};
+use vf_faults::FaultSet;
+use vf_model::{compute_thrust_effectiveness, ActuatorState, VehicleModel};
 
 /// Solver-neutral internal Quadratic Program representation.
 /// Minimizes: 1/2 * x^T * P * x + q^T * x
@@ -46,6 +47,7 @@ pub trait ControlAllocator {
         model: &VehicleModel,
         desired_wrench: &BodyWrench,
         current_state: &ActuatorState,
+        faults: &FaultSet,
     ) -> Result<QuadraticProgram, VfError>;
 
     /// Solves the QP and returns the actuator state update.
@@ -54,6 +56,58 @@ pub trait ControlAllocator {
         qp: &QuadraticProgram,
         warm_start: Option<&ActuatorState>,
     ) -> Result<(ActuatorState, SolverStatus, AllocationDiagnostics), VfError>;
+}
+
+/// Computes the thrust effectiveness matrix B (6x16 Jacobian) taking into account active faults.
+pub fn compute_thrust_effectiveness_under_faults(
+    model: &VehicleModel,
+    state: &ActuatorState,
+    faults: &FaultSet,
+) -> Result<SMatrix<f64, 6, 16>, VfError> {
+    // 1. Create a modified actuator state to account for jammed joints
+    let mut modified_state = *state;
+
+    // Overwrite any jammed motor tilts
+    for rotor in &model.rotors {
+        if let Some(jammed_angle) = faults.get_jammed_motor_tilt(rotor.id) {
+            let idx = (rotor.id.0 as usize) - 1;
+            modified_state.motor_tilts[idx] = jammed_angle;
+        }
+    }
+
+    // Overwrite any jammed pod tilts
+    for pod in model.pods.values() {
+        if let Some(jammed_angle) = faults.get_jammed_pod_tilt(pod.id, PodAxis::Axis1) {
+            let base_idx = match pod.id {
+                PodId::FL => 0,
+                PodId::FR => 2,
+                PodId::RL => 4,
+                PodId::RR => 6,
+            };
+            modified_state.pod_tilts[base_idx] = jammed_angle;
+        }
+        if let Some(jammed_angle) = faults.get_jammed_pod_tilt(pod.id, PodAxis::Axis2) {
+            let base_idx = match pod.id {
+                PodId::FL => 0,
+                PodId::FR => 2,
+                PodId::RL => 4,
+                PodId::RR => 6,
+            };
+            modified_state.pod_tilts[base_idx + 1] = jammed_angle;
+        }
+    }
+
+    // 2. Compute the nominal effectiveness matrix with the modified state
+    let mut b = compute_thrust_effectiveness(model, &modified_state)?;
+
+    // 3. Zero out columns for any rotors marked failed (including pod bus failures)
+    for (i, rotor) in model.rotors.iter().enumerate() {
+        if faults.is_rotor_failed(rotor.id, rotor.pod_id) {
+            b.column_mut(i).fill(0.0);
+        }
+    }
+
+    Ok(b)
 }
 
 /// OSQP-based real-time thrust-only allocator.
@@ -102,9 +156,10 @@ impl ControlAllocator for OsqpThrustAllocator {
         model: &VehicleModel,
         desired_wrench: &BodyWrench,
         current_state: &ActuatorState,
+        faults: &FaultSet,
     ) -> Result<QuadraticProgram, VfError> {
-        // 1. Compute effectiveness matrix B (6x16)
-        let b = compute_thrust_effectiveness(model, current_state)?;
+        // 1. Compute effectiveness matrix B (6x16) taking into account active faults
+        let b = compute_thrust_effectiveness_under_faults(model, current_state, faults)?;
 
         // 2. Setup weighting matrix W_w^2
         let mut w_diag = SMatrix::<f64, 6, 6>::zeros();
@@ -121,8 +176,18 @@ impl ControlAllocator for OsqpThrustAllocator {
         }
 
         // 4. Compute e_wrench = W_des - W_k
-        let wk = wrench_from_actuators(model, current_state)?;
-        let e_wrench = desired_wrench.to_vector() - wk.to_vector();
+        // Note: W_k should be computed based on actual kinematics under faults as well.
+        // So we compute the kinematics with any jammed angles.
+        // We can evaluate this by using the effectiveness matrix: W_k = B * f_k
+        // Since B already accounts for jammed tilts and failed motors (columns zeroed),
+        // B * f_k computes exactly the active wrench produced by the current thrusts!
+        // This is extremely elegant and consistent.
+        let mut f_k = SVector::<f64, 16>::zeros();
+        for i in 0..16 {
+            f_k[i] = current_state.motor_thrusts[i];
+        }
+        let wk_vec = b * f_k;
+        let e_wrench = desired_wrench.to_vector() - wk_vec;
 
         // 5. Compute linear cost q = -2 * B^T * W_w^2 * e_wrench + 2 * lambda_center * (f_k - f_nom)
         let q_wrench = -2.0 * b.transpose() * w_diag * e_wrench;
@@ -143,8 +208,17 @@ impl ControlAllocator for OsqpThrustAllocator {
             let fk_i = current_state.motor_thrusts[i];
             let max_df = rotor.thrust_rate_limit_n_s * self.dt;
 
-            lower[i] = (rotor.thrust_min_n - fk_i).max(-max_df);
-            upper[i] = (rotor.thrust_max_n - fk_i).min(max_df);
+            if faults.is_rotor_failed(rotor.id, rotor.pod_id) {
+                // Constrain failed motors to exactly 0.0 N thrust
+                lower[i] = -fk_i;
+                upper[i] = -fk_i;
+            } else {
+                let limit_frac = faults.get_motor_thrust_limit_fraction(rotor.id);
+                let max_thrust_effective = rotor.thrust_max_n * limit_frac;
+
+                lower[i] = (rotor.thrust_min_n - fk_i).max(-max_df);
+                upper[i] = (max_thrust_effective - fk_i).min(max_df);
+            }
         }
 
         Ok(QuadraticProgram {

@@ -101,12 +101,24 @@ impl AllocatorRuntime {
             &self.vehicle_model,
             &request.desired_wrench_body,
             &request.measured_actuator_state,
+            &request.active_faults,
         )?;
 
         // 2. Solve the QP
-        let (commands, solver_status, diagnostics) = self
+        let (mut commands, solver_status, diagnostics) = self
             .allocator
             .solve(&qp, Some(&request.measured_actuator_state))?;
+
+        // 3. Post-solver safety check: enforce exactly 0.0 N thrust for failed motors
+        // (to guarantee no numeric solver leak/inaccuracy)
+        for (i, rotor) in self.vehicle_model.rotors.iter().enumerate() {
+            if request
+                .active_faults
+                .is_rotor_failed(rotor.id, rotor.pod_id)
+            {
+                commands.motor_thrusts[i] = 0.0;
+            }
+        }
 
         // 3. Compute achieved wrench estimate and residual
         let achieved_wrench = vf_model::wrench_from_actuators(&self.vehicle_model, &commands)?;
@@ -131,16 +143,23 @@ impl AllocatorRuntime {
             );
         }
 
-        // 5. Build ControlAuthority (mock values for singular values/rank until Phase 3)
-        let authority = ControlAuthority {
-            mode: ControlAuthorityMode::NORMAL,
-            rank: 6,
-            singular_values: vec![1.0; 6],
-            min_singular_value: 1.0,
-            condition_number: 1.0,
-            thrust_reserve_n: 800.0,
-            saturation_fraction: 0.0,
-        };
+        // 5. Compute ControlAuthority metrics using SVD and the fault-degraded effectiveness matrix
+        let b_matrix = vf_allocator::compute_thrust_effectiveness_under_faults(
+            &self.vehicle_model,
+            &commands,
+            &request.active_faults,
+        )?;
+
+        let authority = ControlAuthority::compute(
+            &self.vehicle_model,
+            &commands,
+            &request.active_faults,
+            &b_matrix,
+            self.vehicle_model.min_singular_value_degraded,
+            self.vehicle_model.min_singular_value_critical,
+        );
+
+        let authority_mode = authority.mode;
 
         Ok(AllocationResult {
             commands,
@@ -148,7 +167,7 @@ impl AllocatorRuntime {
             residual_wrench,
             solver_status,
             authority,
-            mode: ControlAuthorityMode::NORMAL,
+            mode: authority_mode,
             diagnostics,
         })
     }

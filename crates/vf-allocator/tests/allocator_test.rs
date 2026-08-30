@@ -37,9 +37,13 @@ fn test_osqp_allocator_hover() {
     let mut allocator =
         OsqpThrustAllocator::new(wrench_weights, lambda_smooth, lambda_center, f_nominal, dt);
 
-    // 1. Formulate
     let qp = allocator
-        .formulate(&model, &desired_wrench, &current_state)
+        .formulate(
+            &model,
+            &desired_wrench,
+            &current_state,
+            &vf_faults::FaultSet::new(),
+        )
         .expect("Failed to formulate QP");
 
     // 2. Solve

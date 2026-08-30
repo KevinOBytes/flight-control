@@ -129,6 +129,9 @@ pub struct VehicleModel {
     pub center_of_mass: Vector3<f64>,
     pub pods: HashMap<PodId, PodGeometry>,
     pub rotors: Vec<RotorGeometry>,
+    pub min_singular_value_degraded: f64,
+    pub min_singular_value_critical: f64,
+    pub stale_feedback_timeout_s: f64,
 }
 
 impl VehicleModel {
@@ -258,6 +261,9 @@ impl VehicleModel {
             center_of_mass: Vector3::from(config.vehicle.center_of_mass_body_m),
             pods,
             rotors,
+            min_singular_value_degraded: config.fault_thresholds.min_singular_value_degraded,
+            min_singular_value_critical: config.fault_thresholds.min_singular_value_critical,
+            stale_feedback_timeout_s: config.fault_thresholds.stale_feedback_timeout_s,
         })
     }
 }

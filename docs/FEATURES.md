@@ -19,13 +19,13 @@ The project progresses through 9 distinct phases:
 - [x] Thrust QP allocation: solving for $\Delta f$ to track desired body wrench.
 - [x] Slew-rate and physical bounds constraints.
 
-### Phase 3: Fault constraints & Authority Tracking (Current Phase)
-- [ ] Injection and propagation of actuator faults (failed motors, jammed tilts).
-- [ ] Recomputation of local effectiveness Jacobian under faults.
-- [ ] Computation of singular values, condition numbers, and rank.
-- [ ] Control authority status transitions (`NORMAL`, `DEGRADED`, `CRITICAL`, `UNCONTROLLABLE`).
+### Phase 3: Fault constraints & Authority Tracking (Completed)
+- [x] Injection and propagation of actuator faults (failed motors, jammed tilts).
+- [x] Recomputation of local effectiveness Jacobian under faults.
+- [x] Computation of singular values, condition numbers, and rank.
+- [x] Control authority status transitions (`NORMAL`, `DEGRADED`, `CRITICAL`, `UNCONTROLLABLE`).
 
-### Phase 4: Individual Motor Tilt Planner
+### Phase 4: Individual Motor Tilt Planner (Current Phase)
 - [ ] Motor tilt axis rate-limited optimization loop.
 - [ ] Allocation of tilt angles for sustained vectoring.
 - [ ] Dynamic bounds update for thrust QP based on tilt rates.
