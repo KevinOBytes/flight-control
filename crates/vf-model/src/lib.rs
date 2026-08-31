@@ -454,3 +454,78 @@ pub fn compute_thrust_effectiveness(
 
     Ok(b)
 }
+
+/// Computes the derivative of the thrust direction and reaction torque with respect to motor tilt angle gamma.
+pub fn compute_motor_tilt_derivative(
+    model: &VehicleModel,
+    state: &ActuatorState,
+    rotor_id: RotorId,
+) -> Result<(Vector3<f64>, Vector3<f64>), VfError> {
+    let rotor = model
+        .rotors
+        .iter()
+        .find(|r| r.id == rotor_id)
+        .ok_or_else(|| VfError::InvalidValue(format!("Rotor {:?} not found", rotor_id)))?;
+    let pod = model
+        .pods
+        .get(&rotor.pod_id)
+        .ok_or_else(|| VfError::InvalidValue(format!("Pod {:?} not found", rotor.pod_id)))?;
+
+    // 1. Compute R_body_to_pod
+    let (alpha, beta) = state.get_pod_tilts(rotor.pod_id);
+    let r_axis1 = UnitQuaternion::from_axis_angle(&pod.axis_1_local, alpha);
+    let r_axis2 = UnitQuaternion::from_axis_angle(&pod.axis_2_local, beta);
+    let r_body_to_pod = pod.base_orientation_body * r_axis1 * r_axis2;
+
+    // 2. R_fixed = R_body_to_pod * base_orientation_pod
+    let r_fixed = r_body_to_pod * rotor.base_orientation_pod;
+
+    // 3. Rotate tilt axis to body frame
+    let v_body = r_fixed * rotor.motor_tilt_axis_local.into_inner();
+
+    // 4. Get current kinematics (for current n_i)
+    let kin = rotor_kinematics(model, state, rotor_id)?;
+
+    // dn_dgamma = v_body x n
+    let dn_dgamma = v_body.cross(&kin.thrust_direction_body);
+
+    // reaction torque derivative is spin_sign * k_t * dn_dgamma
+    let spin_sign = match rotor.spin_direction {
+        SpinDirection::CW => 1.0,
+        SpinDirection::CCW => -1.0,
+    };
+    let dm_reaction_dgamma = spin_sign * rotor.torque_per_thrust_m * dn_dgamma;
+
+    Ok((dn_dgamma, dm_reaction_dgamma))
+}
+
+/// Computes the motor tilt effectiveness matrix J_gamma (6x16 Jacobian) under the current actuator state.
+pub fn compute_motor_tilt_effectiveness(
+    model: &VehicleModel,
+    state: &ActuatorState,
+) -> Result<SMatrix<f64, 6, 16>, VfError> {
+    let mut j_gamma = SMatrix::<f64, 6, 16>::zeros();
+
+    for (i, rotor) in model.rotors.iter().enumerate() {
+        let thrust = state.get_motor_thrust(rotor.id)?;
+        let kin = rotor_kinematics(model, state, rotor.id)?;
+        let (dn_dgamma, dm_reaction_dgamma) =
+            compute_motor_tilt_derivative(model, state, rotor.id)?;
+
+        // dF_dgamma = T * dn_dgamma
+        let df_dgamma = thrust * dn_dgamma;
+
+        // dM_dgamma = arm x dF_dgamma + T * dm_reaction_dgamma
+        let arm = kin.position_body_m - model.center_of_mass;
+        let dm_dgamma = arm.cross(&df_dgamma) + thrust * dm_reaction_dgamma;
+
+        j_gamma[(0, i)] = df_dgamma.x;
+        j_gamma[(1, i)] = df_dgamma.y;
+        j_gamma[(2, i)] = df_dgamma.z;
+        j_gamma[(3, i)] = dm_dgamma.x;
+        j_gamma[(4, i)] = dm_dgamma.y;
+        j_gamma[(5, i)] = dm_dgamma.z;
+    }
+
+    Ok(j_gamma)
+}

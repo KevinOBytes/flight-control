@@ -25,12 +25,12 @@ The project progresses through 9 distinct phases:
 - [x] Computation of singular values, condition numbers, and rank.
 - [x] Control authority status transitions (`NORMAL`, `DEGRADED`, `CRITICAL`, `UNCONTROLLABLE`).
 
-### Phase 4: Individual Motor Tilt Planner (Current Phase)
-- [ ] Motor tilt axis rate-limited optimization loop.
-- [ ] Allocation of tilt angles for sustained vectoring.
-- [ ] Dynamic bounds update for thrust QP based on tilt rates.
+### Phase 4: Individual Motor Tilt Planner (Completed)
+- [x] Motor tilt axis rate-limited optimization loop.
+- [x] Allocation of tilt angles for sustained vectoring.
+- [x] Dynamic bounds update for thrust QP based on tilt rates.
 
-### Phase 5: Propulsion Pod Tilt Planner
+### Phase 5: Propulsion Pod Tilt Planner (Current Phase)
 - [ ] Pod-tilt optimization loop (gross direction changes).
 - [ ] Low-pass gimbal filtering to prevent gimbal hunting on high-frequency noise.
 - [ ] Pod tilt rate and range bounds enforcement.

@@ -1,4 +1,7 @@
 pub mod csc;
+pub mod tilt_planner;
+
+pub use tilt_planner::OsqpMotorTiltPlanner;
 
 use nalgebra::{DMatrix, DVector, SMatrix, SVector};
 use serde::{Deserialize, Serialize};
@@ -121,6 +124,7 @@ pub struct OsqpThrustAllocator {
     f_nominal: [f64; 16],
     dt: f64,
     last_solution: [f64; 16],
+    pub motor_tilt_rates: [f64; 16],
 }
 
 impl OsqpThrustAllocator {
@@ -146,7 +150,13 @@ impl OsqpThrustAllocator {
             f_nominal,
             dt,
             last_solution: [0.0; 16],
+            motor_tilt_rates: [0.0; 16],
         }
+    }
+
+    /// Updates the current motor tilt rates for dynamic thrust bounds scaling.
+    pub fn update_motor_tilt_rates(&mut self, rates: [f64; 16]) {
+        self.motor_tilt_rates = rates;
     }
 }
 
@@ -214,7 +224,17 @@ impl ControlAllocator for OsqpThrustAllocator {
                 upper[i] = -fk_i;
             } else {
                 let limit_frac = faults.get_motor_thrust_limit_fraction(rotor.id);
-                let max_thrust_effective = rotor.thrust_max_n * limit_frac;
+
+                // Dynamic bounds update: scale down maximum thrust when motor is tilting rapidly
+                let tilt_rate_abs = self.motor_tilt_rates[i].abs();
+                let max_tilt_rate = rotor.motor_tilt_rate_limit_rad_s;
+                let scale_frac = if max_tilt_rate > 1e-6 {
+                    (1.0 - 0.2 * (tilt_rate_abs / max_tilt_rate).min(1.0)).max(0.0)
+                } else {
+                    1.0
+                };
+
+                let max_thrust_effective = rotor.thrust_max_n * limit_frac * scale_frac;
 
                 lower[i] = (rotor.thrust_min_n - fk_i).max(-max_df);
                 upper[i] = (max_thrust_effective - fk_i).min(max_df);
