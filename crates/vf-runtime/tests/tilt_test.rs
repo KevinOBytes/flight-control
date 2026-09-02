@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use std::time::Instant;
-use vf_allocator::{OsqpMotorTiltPlanner, OsqpThrustAllocator};
+use vf_allocator::{OsqpMotorTiltPlanner, OsqpPodTiltPlanner, OsqpThrustAllocator};
 use vf_core::{BodyWrench, RotorId};
 use vf_faults::{ActuatorFault, FaultSet};
 use vf_model::{ActuatorState, VehicleModel};
@@ -29,8 +29,15 @@ fn setup_runtime() -> AllocatorRuntime {
         0.1,   // lambda_center
         0.020, // dt
     );
+    let pod_planner = OsqpPodTiltPlanner::new(
+        wrench_weights,
+        1.0,   // lambda_smooth
+        0.1,   // lambda_center
+        0.2,   // alpha_lpf
+        0.050, // dt
+    );
 
-    AllocatorRuntime::new(config, allocator, tilt_planner, model)
+    AllocatorRuntime::new(config, allocator, tilt_planner, pod_planner, model)
 }
 
 /// Generates a measured state with non-zero opposing tilts for 6-DOF rank.

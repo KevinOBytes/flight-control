@@ -1,6 +1,8 @@
 pub mod csc;
+pub mod pod_planner;
 pub mod tilt_planner;
 
+pub use pod_planner::OsqpPodTiltPlanner;
 pub use tilt_planner::OsqpMotorTiltPlanner;
 
 use nalgebra::{DMatrix, DVector, SMatrix, SVector};
@@ -236,8 +238,22 @@ impl ControlAllocator for OsqpThrustAllocator {
 
                 let max_thrust_effective = rotor.thrust_max_n * limit_frac * scale_frac;
 
-                lower[i] = (rotor.thrust_min_n - fk_i).max(-max_df);
-                upper[i] = (max_thrust_effective - fk_i).min(max_df);
+                let l = (rotor.thrust_min_n - fk_i).max(-max_df);
+                let u = (max_thrust_effective - fk_i).min(max_df);
+                if l > u {
+                    if rotor.thrust_min_n - fk_i > 0.0 {
+                        let val = max_df.min(rotor.thrust_min_n - fk_i);
+                        lower[i] = val;
+                        upper[i] = val;
+                    } else {
+                        let val = (-max_df).max(max_thrust_effective - fk_i);
+                        lower[i] = val;
+                        upper[i] = val;
+                    }
+                } else {
+                    lower[i] = l;
+                    upper[i] = u;
+                }
             }
         }
 

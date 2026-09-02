@@ -221,4 +221,12 @@ impl FaultSet {
             _ => None,
         })
     }
+
+    /// Check if an entire pod bus is lost.
+    pub fn is_pod_bus_failed(&self, pod: PodId) -> bool {
+        self.faults.iter().any(|f| match f {
+            ActuatorFault::PodBusUnavailable { pod: p } => *p == pod,
+            _ => false,
+        })
+    }
 }

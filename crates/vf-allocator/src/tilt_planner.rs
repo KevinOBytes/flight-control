@@ -91,8 +91,22 @@ impl OsqpMotorTiltPlanner {
                 lower[i] = dgamma_jammed;
                 upper[i] = dgamma_jammed;
             } else {
-                lower[i] = (rotor.motor_tilt_min_rad - gamma_k).max(-max_dgamma);
-                upper[i] = (rotor.motor_tilt_max_rad - gamma_k).min(max_dgamma);
+                let l = (rotor.motor_tilt_min_rad - gamma_k).max(-max_dgamma);
+                let u = (rotor.motor_tilt_max_rad - gamma_k).min(max_dgamma);
+                if l > u {
+                    if rotor.motor_tilt_min_rad - gamma_k > 0.0 {
+                        let val = max_dgamma.min(rotor.motor_tilt_min_rad - gamma_k);
+                        lower[i] = val;
+                        upper[i] = val;
+                    } else {
+                        let val = (-max_dgamma).max(rotor.motor_tilt_max_rad - gamma_k);
+                        lower[i] = val;
+                        upper[i] = val;
+                    }
+                } else {
+                    lower[i] = l;
+                    upper[i] = u;
+                }
             }
         }
 

@@ -1,10 +1,10 @@
 //! Kinematics, geometry, and forward wrench models for VectorFlight.
 
-use nalgebra::{SMatrix, Unit, UnitQuaternion, Vector3};
+use nalgebra::{SMatrix, Unit, UnitQuaternion, Vector3, Vector6};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
-use vf_core::{BodyWrench, PodId, RotorId, SpinDirection, VfError};
+use vf_core::{BodyWrench, PodAxis, PodId, RotorId, SpinDirection, VfError};
 
 /// Geometry and limits for a single rotor, resolved or configured.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -528,4 +528,91 @@ pub fn compute_motor_tilt_effectiveness(
     }
 
     Ok(j_gamma)
+}
+
+/// Computes the total wrench derivative with respect to a single pod tilt axis.
+pub fn compute_pod_tilt_derivative(
+    model: &VehicleModel,
+    state: &ActuatorState,
+    pod_id: PodId,
+    axis: PodAxis,
+) -> Result<Vector6<f64>, VfError> {
+    let pod = model
+        .pods
+        .get(&pod_id)
+        .ok_or_else(|| VfError::InvalidValue(format!("Pod {:?} not found", pod_id)))?;
+
+    let (alpha, _beta) = state.get_pod_tilts(pod_id);
+
+    // Compute rotation axis in body frame
+    let v_body = match axis {
+        PodAxis::Axis1 => pod.base_orientation_body * pod.axis_1_local.into_inner(),
+        PodAxis::Axis2 => {
+            let r_axis1 = UnitQuaternion::from_axis_angle(&pod.axis_1_local, alpha);
+            pod.base_orientation_body * (r_axis1 * pod.axis_2_local.into_inner())
+        }
+    };
+
+    let mut df_total = Vector3::zeros();
+    let mut dm_total = Vector3::zeros();
+
+    for rotor in model.rotors.iter().filter(|r| r.pod_id == pod_id) {
+        let thrust = state.get_motor_thrust(rotor.id)?;
+        let kin = rotor_kinematics(model, state, rotor.id)?;
+
+        // Hub displacement relative to pod center in body frame
+        let hub_rel_pod = kin.position_body_m - pod.position_body_m;
+        let dr_dtheta = v_body.cross(&hub_rel_pod);
+
+        // Thrust direction derivative
+        let dn_dtheta = v_body.cross(&kin.thrust_direction_body);
+
+        // Force derivative
+        let df_dtheta = thrust * dn_dtheta;
+
+        // Reaction torque derivative
+        let spin_sign = match rotor.spin_direction {
+            SpinDirection::CW => 1.0,
+            SpinDirection::CCW => -1.0,
+        };
+        let dm_reaction_dtheta = spin_sign * rotor.torque_per_thrust_m * thrust * dn_dtheta;
+
+        // Moment derivative
+        let f_rotor = thrust * kin.thrust_direction_body;
+        let arm_com = kin.position_body_m - model.center_of_mass;
+        let dm_dtheta = dr_dtheta.cross(&f_rotor) + arm_com.cross(&df_dtheta) + dm_reaction_dtheta;
+
+        df_total += df_dtheta;
+        dm_total += dm_dtheta;
+    }
+
+    Ok(Vector6::new(
+        df_total.x, df_total.y, df_total.z, dm_total.x, dm_total.y, dm_total.z,
+    ))
+}
+
+/// Computes the pod tilt effectiveness matrix J_pod (6x8 Jacobian) under the current actuator state.
+pub fn compute_pod_tilt_effectiveness(
+    model: &VehicleModel,
+    state: &ActuatorState,
+) -> Result<SMatrix<f64, 6, 8>, VfError> {
+    let mut j_pod = SMatrix::<f64, 6, 8>::zeros();
+
+    let pod_configs = [
+        (PodId::FL, PodAxis::Axis1, 0),
+        (PodId::FL, PodAxis::Axis2, 1),
+        (PodId::FR, PodAxis::Axis1, 2),
+        (PodId::FR, PodAxis::Axis2, 3),
+        (PodId::RL, PodAxis::Axis1, 4),
+        (PodId::RL, PodAxis::Axis2, 5),
+        (PodId::RR, PodAxis::Axis1, 6),
+        (PodId::RR, PodAxis::Axis2, 7),
+    ];
+
+    for (pod_id, axis, col) in pod_configs {
+        let deriv = compute_pod_tilt_derivative(model, state, pod_id, axis)?;
+        j_pod.set_column(col, &deriv);
+    }
+
+    Ok(j_pod)
 }

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use std::time::Instant;
-use vf_allocator::{OsqpMotorTiltPlanner, OsqpThrustAllocator, SolverStatus};
+use vf_allocator::{OsqpMotorTiltPlanner, OsqpPodTiltPlanner, OsqpThrustAllocator, SolverStatus};
 use vf_core::BodyWrench;
 use vf_faults::FaultSet;
 use vf_model::{ActuatorState, VehicleModel};
@@ -25,8 +25,9 @@ fn test_allocator_runtime_step() {
     let wrench_weights = [1e4, 1e4, 1e4, 1e4, 1e4, 1e4];
     let allocator = OsqpThrustAllocator::new(wrench_weights, 1e-3, 1e-1, [10.0; 16], 0.005);
     let tilt_planner = OsqpMotorTiltPlanner::new(wrench_weights, 1.0, 0.1, 0.020);
+    let pod_planner = OsqpPodTiltPlanner::new(wrench_weights, 1.0, 0.1, 0.2, 0.050);
 
-    let mut runtime = AllocatorRuntime::new(config, allocator, tilt_planner, model);
+    let mut runtime = AllocatorRuntime::new(config, allocator, tilt_planner, pod_planner, model);
 
     // Create a request
     let request = AllocationRequest {

@@ -30,12 +30,12 @@ The project progresses through 9 distinct phases:
 - [x] Allocation of tilt angles for sustained vectoring.
 - [x] Dynamic bounds update for thrust QP based on tilt rates.
 
-### Phase 5: Propulsion Pod Tilt Planner (Current Phase)
-- [ ] Pod-tilt optimization loop (gross direction changes).
-- [ ] Low-pass gimbal filtering to prevent gimbal hunting on high-frequency noise.
-- [ ] Pod tilt rate and range bounds enforcement.
+### Phase 5: Propulsion Pod Tilt Planner (Completed)
+- [x] Pod-tilt optimization loop (gross direction changes).
+- [x] Low-pass gimbal filtering to prevent gimbal hunting on high-frequency noise.
+- [x] Pod tilt rate and range bounds enforcement.
 
-### Phase 6: Rigid-Body 6-DOF Simulator
+### Phase 6: Rigid-Body 6-DOF Simulator (Current Phase)
 - [ ] 6-DOF plant dynamics numerical integrator.
 - [ ] First-order lag model for ESC thrust and servo tilt response.
 - [ ] Sim-side actuator noise and wind disturbance models.
