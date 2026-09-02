@@ -695,8 +695,11 @@ dependencies = [
  "nalgebra",
  "serde",
  "thiserror 1.0.69",
+ "vf-allocator",
  "vf-core",
+ "vf-faults",
  "vf-model",
+ "vf-runtime",
 ]
 
 [[package]]

@@ -6,6 +6,9 @@ edition = "2021"
 [dependencies]
 vf-core = { path = "../vf-core" }
 vf-model = { path = "../vf-model" }
+vf-faults = { path = "../vf-faults" }
+vf-allocator = { path = "../vf-allocator" }
+vf-runtime = { path = "../vf-runtime" }
 nalgebra.workspace = true
 serde.workspace = true
 thiserror.workspace = true

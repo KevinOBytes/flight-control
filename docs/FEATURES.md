@@ -35,13 +35,13 @@ The project progresses through 9 distinct phases:
 - [x] Low-pass gimbal filtering to prevent gimbal hunting on high-frequency noise.
 - [x] Pod tilt rate and range bounds enforcement.
 
-### Phase 6: Rigid-Body 6-DOF Simulator (Current Phase)
-- [ ] 6-DOF plant dynamics numerical integrator.
-- [ ] First-order lag model for ESC thrust and servo tilt response.
-- [ ] Sim-side actuator noise and wind disturbance models.
-- [ ] Scriptable scenario runner for automated flight profile tests (hover, yaw/pitch/roll, lateral translation).
+### Phase 6: Rigid-Body 6-DOF Simulator (Completed)
+- [x] 6-DOF plant dynamics numerical integrator.
+- [x] First-order lag model for ESC thrust and servo tilt response.
+- [x] Sim-side actuator noise and wind disturbance models.
+- [x] Scriptable scenario runner for automated flight profile tests (hover, yaw/pitch/roll, lateral translation).
 
-### Phase 7: Python Validation & Geometry Search
+### Phase 7: Python Validation & Geometry Search (Current Phase)
 - [ ] Independent Python geometry representation and forward model.
 - [ ] Numerical finite difference Jacobian calculation.
 - [ ] Automated cross-check of Python vs Rust Jacobians.
