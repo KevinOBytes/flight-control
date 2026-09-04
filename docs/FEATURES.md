@@ -41,13 +41,13 @@ The project progresses through 9 distinct phases:
 - [x] Sim-side actuator noise and wind disturbance models.
 - [x] Scriptable scenario runner for automated flight profile tests (hover, yaw/pitch/roll, lateral translation).
 
-### Phase 7: Python Validation & Geometry Search (Current Phase)
-- [ ] Independent Python geometry representation and forward model.
-- [ ] Numerical finite difference Jacobian calculation.
-- [ ] Automated cross-check of Python vs Rust Jacobians.
-- [ ] Pod/motor tilt orientation optimizer to maximize minimum singular values.
+### Phase 7: Python Validation & Geometry Search (Completed)
+- [x] Independent Python geometry representation and forward model.
+- [x] Numerical finite difference Jacobian calculation.
+- [x] Automated cross-check of Python vs Rust Jacobians.
+- [x] Pod/motor tilt orientation optimizer to maximize minimum singular values.
 
-### Phase 8: HAL & CAN-FD Adapter
+### Phase 8: HAL & CAN-FD Adapter (Current Phase)
 - [ ] Hardware-independent Propulsion HAL trait.
 - [ ] Linux SocketCAN CAN-FD adapter implementation.
 - [ ] Timestamps, monotonically increasing sequence numbers, and byte-order serialization.
