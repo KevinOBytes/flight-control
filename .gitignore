@@ -18,3 +18,8 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 *.egg-info/
+
+# Local environment files (never commit)
+.env
+.env.*
+!.env.example
